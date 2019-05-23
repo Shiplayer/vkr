@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # In[1]:
@@ -19,6 +18,9 @@ import moderngl as mgl
 import numpy as np
 import scipy.optimize
 
+import matplotlib.pyplot as plt
+
+
 # In[2]:
 
 
@@ -27,13 +29,13 @@ import scipy.optimize
 # Обьекты этого класса хранят состояние окна, нажатые клавиши и т.п.
 class WindowInfo:
     def __init__(self):
-        self.size = (0, 0) # Размер окна в пикселях
+        self.size = (0, 0)  # Размер окна в пикселях
         self.mouse = (0, 0)
         self.wheel = 0
         self.time = 0
-        self.ratio = 1.0 # Отношиние ширины и длины окна
-        self.viewport = (0, 0, 0, 0) # Координаты и размеры окна
-        self.keys = np.full(256, False) # Для каждого кода клавиши True, если клавиша нажата.
+        self.ratio = 1.0  # Отношиние ширины и длины окна
+        self.viewport = (0, 0, 0, 0)  # Координаты и размеры окна
+        self.keys = np.full(256, False)  # Для каждого кода клавиши True, если клавиша нажата.
         self.old_keys = np.copy(self.keys)
         self.delta = 0.0
 
@@ -46,15 +48,16 @@ class WindowInfo:
     def key_released(self, key):
         return not self.keys[key] and self.old_keys[key]
 
+
 # Класс окна, абстрагирующий большинство деталей взаимодействия с оконным менеджером.
 class ExampleWindow(QtOpenGL.QGLWidget):
     def __init__(self, size, title):
         fmt = QtOpenGL.QGLFormat()
-        fmt.setVersion(3, 3) # Минимальная версия OpenGL. Берем 3.3 так как ничего сложного не делаем.
+        fmt.setVersion(3, 3)  # Минимальная версия OpenGL. Берем 3.3 так как ничего сложного не делаем.
         fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
-        fmt.setSwapInterval(1) # Синхронизировать смену кадра с разверткой монитора
-        fmt.setSampleBuffers(True) # Использовать мальтисемплинг для сглаживания границ обьектов.
-        fmt.setDepthBufferSize(24) # Не важно, буфеп глубины для двумерной графики вообще не нужен
+        fmt.setSwapInterval(1)  # Синхронизировать смену кадра с разверткой монитора
+        fmt.setSampleBuffers(True)  # Использовать мальтисемплинг для сглаживания границ обьектов.
+        fmt.setDepthBufferSize(24)  # Не важно, буфеп глубины для двумерной графики вообще не нужен
 
         super(ExampleWindow, self).__init__(fmt, None)
         self.resize(size[0], size[1])
@@ -69,13 +72,13 @@ class ExampleWindow(QtOpenGL.QGLWidget):
 
         self.time_mark = time.time()
 
-    def resizeEvent(self, event): # Устанавливаем размер окна
+    def resizeEvent(self, event):  # Устанавливаем размер окна
         size = (event.size().width(), event.size().height())
-        self.wnd.size = size 
+        self.wnd.size = size
         self.wnd.viewport = (0, 0) + (size[0], size[1])
-        self.wnd.ratio = size[0] / size[1] * self.devicePixelRatio() # Соотношение видимой высота и ширины окна
+        self.wnd.ratio = size[0] / size[1] * self.devicePixelRatio()  # Соотношение видимой высота и ширины окна
 
-    def keyPressEvent(self, event): # Здесь обновляется список нажатых клавиш
+    def keyPressEvent(self, event):  # Здесь обновляется список нажатых клавиш
         # Quit when ESC is pressed
         if event.key() == QtCore.Qt.Key_Escape:
             QtCore.QCoreApplication.instance().quit()
@@ -91,7 +94,7 @@ class ExampleWindow(QtOpenGL.QGLWidget):
     def wheelEvent(self, event):
         self.wnd.wheel += event.angleDelta().y()
 
-    def paintGL(self): # Эта функция вызывается для отрисовки содержимого окна
+    def paintGL(self):  # Эта функция вызывается для отрисовки содержимого окна
         if self.ex is None:
             self.ex = self.example()
 
@@ -99,7 +102,7 @@ class ExampleWindow(QtOpenGL.QGLWidget):
         mark = time.time()
         self.wnd.delta = mark - self.time_mark
         self.time_mark = mark
-        self.setWindowTitle("FPS: {:.1f} {}".format(1.0/self.wnd.delta, self.ex.info))
+        self.setWindowTitle("FPS: {:.1f} {}".format(1.0 / self.wnd.delta, self.ex.info))
 
         self.wnd.time = time.clock() - self.start_time
         self.ex.render()
@@ -108,7 +111,7 @@ class ExampleWindow(QtOpenGL.QGLWidget):
         self.update()
 
 
-def run_example(example): # Эта функция инициализирует Qt приложение и создает окно для 3D графики.
+def run_example(example):  # Эта функция инициализирует Qt приложение и создает окно для 3D графики.
     app = QtWidgets.QApplication([])
     widget = ExampleWindow(example.WINDOW_SIZE, getattr(example, 'WINDOW_TITLE', example.__name__))
     example.wnd = widget.wnd
@@ -152,19 +155,21 @@ class Example:
 
 # Наиболее полезные трансформации пространства:
 # параллельный перенос центра координат в точку (x,y)
-def translate(x,y):
-    return np.array([[1,0,x],[0,1,y],[0,0,1]], dtype=np.float32)
+def translate(x, y):
+    return np.array([[1, 0, x], [0, 1, y], [0, 0, 1]], dtype=np.float32)
+
 
 # поворот на угол a в радианах.
 def rotate(a):
     c, s = np.cos(a), np.sin(a)
-    return np.array([[c,s,0],[-s,c,0],[0,0,1]], dtype=np.float32)
+    return np.array([[c, s, 0], [-s, c, 0], [0, 0, 1]], dtype=np.float32)
+
 
 # А это растяжение в x раз по оси Ox и y раз по оси Oy.
 # Это не изометрия, поэтоиу не должна использоваться с для преобразования
 # координат твердых тел, однако мы используем его для визуализации обьектов.
-def stretch(x,y):
-    return np.array([[x,0,0],[0,y,0],[0,0,1]], dtype=np.float32)
+def stretch(x, y):
+    return np.array([[x, 0, 0], [0, y, 0], [0, 0, 1]], dtype=np.float32)
 
 
 # На практике мы часто не знаем преобразование $U$ явно, однако знаем, что чтобы получить
@@ -187,81 +192,95 @@ def stretch(x,y):
 
 # Класс для вычисления матриц преобразования U одновременно с производными по q[k].
 class AD(object):
-    def __init__(self, value): # Конструктор для постоянной матрицы, не зависящей от обобщенных координат. 
-        self._value = value # Сама матрица преобразования.
-        self._difs = {} # Все производные равны нулю, не указываем их, так как ноль значение по умолчанию.
+    def __init__(self, value):  # Конструктор для постоянной матрицы, не зависящей от обобщенных координат.
+        self._value = value  # Сама матрица преобразования.
+        self._difs = {}  # Все производные равны нулю, не указываем их, так как ноль значение по умолчанию.
         self._hess = {}
-    def value(self): # Читает матрицу пребразования.
-        return self._value 
-    def grad(self, N): # Возвращает G, такое что G[:,:,k] есть производная self.value() по q[k].
+
+    def value(self):  # Читает матрицу пребразования.
+        return self._value
+
+    def grad(self, N):  # Возвращает G, такое что G[:,:,k] есть производная self.value() по q[k].
         # Склеивает элементы словаря self._difs в один вектор, заполняя нулями отсутствующие.
-        a = np.array([self._difs[n] if n in self._difs else np.zeros((3,3)) for n in range(N)])
-        return np.transpose(a, (1,2,0))
-    def hess(self, v): 
-        N=v.shape[0]
-        assert(v.shape==(N,))
+        a = np.array([self._difs[n] if n in self._difs else np.zeros((3, 3)) for n in range(N)])
+        return np.transpose(a, (1, 2, 0))
+
+    def hess(self, v):
+        N = v.shape[0]
+        assert (v.shape == (N,))
         a = []
         for n in range(N):
-            b = np.zeros((3,3), dtype=np.float32)
+            b = np.zeros((3, 3), dtype=np.float32)
             for m in range(N):
-                x,y = (n,m) if n<m else (m,n) 
-                if (x,y) in self._hess:
-                    b = b + self._hess[x,y] * v[m]
+                x, y = (n, m) if n < m else (m, n)
+                if (x, y) in self._hess:
+                    b = b + self._hess[x, y] * v[m]
             a.append(b)
         return np.array(a).transpose((1, 2, 0))
-    def hessian(self, N): 
-        a = np.zeros((3,3,N,N), dtype=np.float32)
+
+    def hessian(self, N):
+        a = np.zeros((3, 3, N, N), dtype=np.float32)
         for n in range(N):
             for m in range(N):
-                x,y = (n,m) if n<m else (m,n) 
-                if (x,y) in self._hess:
-                    a[:,:,n,m] += self._hess[x,y]
-        return a    
+                x, y = (n, m) if n < m else (m, n)
+                if (x, y) in self._hess:
+                    a[:, :, n, m] += self._hess[x, y]
+        return a
+
     @staticmethod
-    def identity(): # Конструктор для тождественного преобразования.
+    def identity():  # Конструктор для тождественного преобразования.
         return AD(np.eye(3))
+
     @staticmethod
-    def translate_x(q, n): # Сдвиг по оси Ox на значение обобщенной координаты q[n]
-        ad = AD(np.array([[1,0,q[n]],[0,1,0],[0,0,1]]))
-        ad._difs[n]=np.array([[0,0,1],[0,0,0],[0,0,0]]) # Производная матрицы в предыдущей строке по q[n].
+    def translate_x(q, n):  # Сдвиг по оси Ox на значение обобщенной координаты q[n]
+        ad = AD(np.array([[1, 0, q[n]], [0, 1, 0], [0, 0, 1]]))
+        ad._difs[n] = np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]])  # Производная матрицы в предыдущей строке по q[n].
         return ad
+
     @staticmethod
-    def rotate(q, n): # Поворот вокруг оси Oz на значение угла из обобщенной координаты q[n]. 
+    def rotate(q, n):  # Поворот вокруг оси Oz на значение угла из обобщенной координаты q[n].
         c, s = np.cos(q[n]), np.sin(q[n])
-        ad = AD(np.array([[c,s,0],[-s,c,0],[0,0,1]]))
-        ad._difs[n] = np.array([[-s,c,0],[-c,-s,0],[0,0,0]])
-        ad._hess[n,n] = np.array([[-c,-s,0],[s,-c,0],[0,0,0]])
+        ad = AD(np.array([[c, s, 0], [-s, c, 0], [0, 0, 1]]))
+        ad._difs[n] = np.array([[-s, c, 0], [-c, -s, 0], [0, 0, 0]])
+        ad._hess[n, n] = np.array([[-c, -s, 0], [s, -c, 0], [0, 0, 0]])
         return ad
-    def __mul__(self, o): # Композиция преобразований (произведение матриц).
-        ad = AD(self._value @ o._value) # Сами преобразование перемножаются как матриц.
-        
-        for n in self._difs.keys(): # Производные считаются по правилу дифференциирования произведения.
-            ad._difs[n] = self._difs[n] @ o._value # Сначала производная первого на второе,
+
+    def __mul__(self, o):  # Композиция преобразований (произведение матриц).
+        ad = AD(self._value @ o._value)  # Сами преобразование перемножаются как матриц.
+
+        for n in self._difs.keys():  # Производные считаются по правилу дифференциирования произведения.
+            ad._difs[n] = self._difs[n] @ o._value  # Сначала производная первого на второе,
         for n in o._difs.keys():
-            t = self._value @ o._difs[n] # затем первое на производную второго,
-            ad._difs[n] = ad._difs[n] + t if n in ad._difs else t # и складываем.
-        
-        for n in self._hess.keys(): 
-            ad._hess[n] = self._hess[n] @ o._value 
+            t = self._value @ o._difs[n]  # затем первое на производную второго,
+            ad._difs[n] = ad._difs[n] + t if n in ad._difs else t  # и складываем.
+
+        for n in self._hess.keys():
+            ad._hess[n] = self._hess[n] @ o._value
         for n in o._hess.keys():
-            t = self._value @ o._hess[n] 
-            ad._hess[n] = ad._hess[n] + t if n in ad._hess else t 
+            t = self._value @ o._hess[n]
+            ad._hess[n] = ad._hess[n] + t if n in ad._hess else t
         for n in self._difs.keys():
             for m in o._difs.keys():
                 t = self._difs[n] @ o._difs[m]
-                if n<m: ad._hess[n,m] = ad._hess[n,m] + t if (n,m) in ad._hess else t 
-                elif n>m: ad._hess[m,n] = ad._hess[m,n] + t if (m,n) in ad._hess else t
-                else: ad._hess[n,n] = ad._hess[n,n] + 2*t if (n,n) in ad._hess else 2*t
+                if n < m:
+                    ad._hess[n, m] = ad._hess[n, m] + t if (n, m) in ad._hess else t
+                elif n > m:
+                    ad._hess[m, n] = ad._hess[m, n] + t if (m, n) in ad._hess else t
+                else:
+                    ad._hess[n, n] = ad._hess[n, n] + 2 * t if (n, n) in ad._hess else 2 * t
 
         # print("First", self)
         # print("Second", o)
         # print("Result", ad)
 
         return ad
-    def __str__(self): # Вывод преобразования и производных для отладки.
-        return "\nAD >>> \n{}\n{}\n{}\n<<< AD\n".format(self._value, self._difs, self._hess)    
 
-# import numpy.testing as tst
+    def __str__(self):  # Вывод преобразования и производных для отладки.
+        return "\nAD >>> \n{}\n{}\n{}\n<<< AD\n".format(self._value, self._difs, self._hess)
+
+        # import numpy.testing as tst
+
+
 # import numpy.random as rnd
 # def test_ad(oper, dim=2):
 #     print("test_ad", dim)
@@ -322,7 +341,7 @@ class Compound(object):
     # цвета color, к которому перед отрисовкой будет применено преобразование modifier,
     # которое используется только для отрисовки и может быть не ортогональным.
     # Программа никак не проверяет корректность задания moi и положения центра масс.
-    def __init__(self, figure=None, color=(0,0,0,1), mass=None, moi=None, modifier=np.eye(3)):
+    def __init__(self, figure=None, color=(0, 0, 0, 1), mass=None, moi=None, modifier=np.eye(3)):
         self._figure = figure
         self._color = tuple(color)
         self._modifier = modifier
@@ -331,16 +350,16 @@ class Compound(object):
         self.moi = moi
 
         # Обьекты образуют иерархию. Обьекты создаются свободными.
-        self._parent = None # Это к чему присоединен текущий обьект.
-        self._children = {} # Это присоединенные к текущему обьекты.
+        self._parent = None  # Это к чему присоединен текущий обьект.
+        self._children = {}  # Это присоединенные к текущему обьекты.
 
     # Этот метод прикрепляет к текущему обьекту self обьект child.
     # Прикрепленный обьект child можно затем получить по его имени name. 
     def adopt(self, name, child):
-        assert(child._parent is None)
+        assert (child._parent is None)
         child._parent = self
         self._children[name] = child
-    
+
     # Возвращает список всех детей обьекта.
     def children(self):
         return self._children.values()
@@ -348,7 +367,7 @@ class Compound(object):
     # Возвращает child, соответствующий имени name, как было передано в adopt.
     def __getitem__(self, name):
         return self._children[name]
- 
+
     # Задает преобразование, которое нужно сделать, чтобы перейти от системы 
     # координат текущего обьекта self в систему координат его предка self.parent
     # для данных обобщенных координат q.
@@ -365,11 +384,11 @@ class Compound(object):
     # Вектор scale задает масштаб по горизонтали и вертикали на экране,
     # что далее используется для компенсации различных размеров окна по ширине и высоте,
     # отклонения пикселей от квадратной формы.
-    def render(self, q, transform=np.eye(3), scale=(1.0,1.0)):
+    def render(self, q, transform=np.eye(3), scale=(1.0, 1.0)):
         u = transform @ self.propagator(q).value()
         # assert(isinstance(u, AD))
         if not self._figure is None:
-            self._figure.render(color=self._color, transform=u@self._modifier, scale=scale)
+            self._figure.render(color=self._color, transform=u @ self._modifier, scale=scale)
         for child in self.children():
             child.render(q, transform=u, scale=scale)
 
@@ -382,8 +401,9 @@ class Figure(object):
     # Обьект должен сам уметь себя отрисовывать, однако он принимает некоторые модификаторы,
     # которые изменяют его цвет color (в формате RGBA), размеры и положение с помощью transform.
     # Параметр scale задает масштаб по ширине и высоте окна.
-    def render(self, color=[0.0,0.0,0.0,1.0], transform=np.eye(3), scale=(1.0,1.0)):
+    def render(self, color=[0.0, 0.0, 0.0, 1.0], transform=np.eye(3), scale=(1.0, 1.0)):
         raise NotImplementedError
+
 
 # Класс для фигуры, состоящей из треугольников.
 class Solid(Figure):
@@ -422,14 +442,14 @@ class Solid(Figure):
             ''',
         )
 
-        self.scale = self.prog['u_scale'] # Вектор с масштабами по обоим на экране.
-        self.color = self.prog['u_color'] # Цвет для примитива в формате RGBA.
-        self.transform = self.prog['u_transform'] # Матрица замены координат на плоскости (аналогично U).
+        self.scale = self.prog['u_scale']  # Вектор с масштабами по обоим на экране.
+        self.color = self.prog['u_color']  # Цвет для примитива в формате RGBA.
+        self.transform = self.prog['u_transform']  # Матрица замены координат на плоскости (аналогично U).
 
         # Массивы для хранения вершин и треугольников на графической карте.
         self.vbo = self.ctx.buffer(np.asarray(vertices, dtype=np.float32).tobytes())
         self.ibo = self.ctx.buffer(np.asarray(indices, dtype=np.int32).tobytes())
-        
+
         vao_content = [
             (self.vbo, '2f', 'in_vert')
         ]
@@ -437,13 +457,14 @@ class Solid(Figure):
         self.vao = self.ctx.vertex_array(self.prog, vao_content, self.ibo)
 
     # Метод для отрисовки обьекта.
-    def render(self, color=(0.0,0.0,0.0,1.0), transform=np.eye(3), scale=(1.0,1.0)):
-            # Устанавливаем uniform в программе OpenGL
-            self.scale.value = scale 
-            self.color.value = color
-            self.transform.value = tuple(transform.flatten())
-            # Запускаем саму отрисовку.
-            self.vao.render()
+    def render(self, color=(0.0, 0.0, 0.0, 1.0), transform=np.eye(3), scale=(1.0, 1.0)):
+        # Устанавливаем uniform в программе OpenGL
+        self.scale.value = scale
+        self.color.value = color
+        self.transform.value = tuple(transform.flatten())
+        # Запускаем саму отрисовку.
+        self.vao.render()
+
 
 # Квадрат размера 2 на 2
 class Rectangle(Solid):
@@ -457,21 +478,28 @@ class Rectangle(Solid):
         indices = [1, 2, 0, 2, 0, 3]
         super().__init__(ctx=ctx, vertices=vertices, indices=indices)
 
+
 # Окружность единичного радиуса, приближенна вписанным n-угольником.
 class Circle(Solid):
     def __init__(self, ctx, n=12):
         vertices = []
         indices = []
         for k in range(n):
-            vertices.append(np.cos(2*np.pi*k/n))
-            vertices.append(np.sin(2*np.pi*k/n))
+            vertices.append(np.cos(2 * np.pi * k / n))
+            vertices.append(np.sin(2 * np.pi * k / n))
             indices.append(n)
             indices.append(k)
-            indices.append((k+1)%n)
+            indices.append((k + 1) % n)
         vertices.append(0.0)
         vertices.append(0.0)
         super().__init__(ctx=ctx, vertices=vertices, indices=indices)
 
+
+# Кинетическая энергия объекта с массой колес $m$ и линейной скоростью для колес и тела равно:
+# $$T=\frac{m_W}{2}({v_L}^2 + {v_R}^2) + \frac{M}{2}{v_M}^2$$
+# где m_W - масса колес, v_L, v_R, v_M - линейная скорость центра масс для колес и для тела
+# Запишем кинетическую инрегию вращения для нашего тела с колесами:
+# $$T_{rot} = \frac{1}{2}(\omega^L)^T I_L \omega^L + \frac{1}{2}(\omega^R)^T I_R \omega^R + \frac{1}{2}(\omega^B)^T I_B \omega^B$$
 
 # Для нашей системы кинетическая $T$ и потенциальная энергия $V$ суть суммы
 # кинетической и потенциальной энергий для отдельных обьектов.
@@ -590,12 +618,13 @@ class Circle(Solid):
 def walker(obj: Compound, q, v, parent_U=AD.identity()):
     # Матрица масс = dL/dv.
     U = parent_U * obj.propagator(q)
-    dU = U.grad(len(q)) # градиент матрицы U по обобщенным координатам
+    dU = U.grad(len(q))  # градиент матрицы U по обобщенным координатам
     ddU = U.hess(v)
-    I = np.array([obj.moi/2.0,obj.moi/2.0,obj.mass])[None,:,None,None] # Матрица \mathrm{M}
-    M=np.sum(dU[:,:,None,:]*dU[:,:,:,None]*I,axis=(0,1)) # матрица масс \mathcal{M}
-    dM=np.sum((ddU[:,:,None,:]*dU[:,:,:,None]+dU[:,:,None,:]*ddU[:,:,:,None])*I,axis=(0,1)) # матрица масс \mathcal{M}
-    d_potential_energy = obj.mass*dU[1,-1]*gravity # градиент потенциальной энергии V
+    I = np.array([obj.moi / 2.0, obj.moi / 2.0, obj.mass])[None, :, None, None]  # Матрица \mathrm{M}
+    M = np.sum(dU[:, :, None, :] * dU[:, :, :, None] * I, axis=(0, 1))  # матрица масс \mathcal{M}
+    dM = np.sum((ddU[:, :, None, :] * dU[:, :, :, None] + dU[:, :, None, :] * ddU[:, :, :, None]) * I,
+                axis=(0, 1))  # матрица масс \mathcal{M}
+    d_potential_energy = obj.mass * dU[1, -1] * gravity  # градиент потенциальной энергии V
 
     for child in obj.children():
         dV, M1, dM1 = walker(child, q, v, parent_U=U)
@@ -604,14 +633,15 @@ def walker(obj: Compound, q, v, parent_U=AD.identity()):
         dM = dM + dM1
     return d_potential_energy, M, dM
 
+
 def energy(obj: Compound, q, v, parent_U=AD.identity()):
     U = parent_U * obj.propagator(q)
     dU = U.grad(len(q))
-    I = np.array([obj.moi/2.0,obj.moi/2.0,obj.mass])[None,:,None,None] # Матрица \mathrm{M}
-    M=np.sum(dU[:,:,None,:]*dU[:,:,:,None]*I,axis=(0,1)) # матрица масс \mathcal{M}
-    kinetic_energy = np.sum(M*v[None,:]*v[:,None])/2.0 # кинетическая энергия T
-    potential_energy = obj.mass*U.value()[1,-1]*gravity # потенциальная энергия V
-    e = kinetic_energy+potential_energy # полная энергия H=T+V
+    I = np.array([obj.moi / 2.0, obj.moi / 2.0, obj.mass])[None, :, None, None]  # Матрица \mathrm{M}
+    M = np.sum(dU[:, :, None, :] * dU[:, :, :, None] * I, axis=(0, 1))  # матрица масс \mathcal{M}
+    kinetic_energy = np.sum(M * v[None, :] * v[:, None]) / 2.0  # кинетическая энергия T
+    potential_energy = obj.mass * U.value()[1, -1] * gravity  # потенциальная энергия V
+    e = kinetic_energy + potential_energy  # полная энергия H=T+V
 
     for child in obj.children():
         e = e + energy(child, q, v, parent_U=U)
@@ -631,28 +661,30 @@ def rhs(obj, q, v, force):
     dV, M, dM_v = walker(obj, q, v)
     # Считаем правую часть второго уравнения динамики без умножения на обратную к матрице масс
     # \mathcal{M}\ddot q:
-    Ma = force + dV + np.sum(v[:,None]*dM_v, axis=0)/2.0
+    Ma = force + dV + np.sum(v[:, None] * dM_v, axis=0) / 2.0
     # Умножая на обратную к \mathcal{M} получаем ускорение.
     a = - np.linalg.solve(M, Ma)
     return v, a
 
+
 # Функция делает один шаг метода Рунге-Кутты четвертого порядка.
 def runge(dt, obj, q, v, force):
     dq1, dv1 = rhs(obj, q, v, force)
-    dq2, dv2 = rhs(obj, q+dt/2.0*dq1, v+dt/2.0*dv1, force)
-    dq3, dv3 = rhs(obj, q+dt/2.0*dq2, v+dt/2.0*dv2, force)
-    dq4, dv4 = rhs(obj, q+dt*dq3, v+dt*dv3, force)
-    q = q+(dq1+2*(dq2+dq3)+dq4)*(dt/6.0)
-    v = v+(dv1+2*(dv2+dv3)+dv4)*(dt/6.0)
+    dq2, dv2 = rhs(obj, q + dt / 2.0 * dq1, v + dt / 2.0 * dv1, force)
+    dq3, dv3 = rhs(obj, q + dt / 2.0 * dq2, v + dt / 2.0 * dv2, force)
+    dq4, dv4 = rhs(obj, q + dt * dq3, v + dt * dv3, force)
+    q = q + (dq1 + 2 * (dq2 + dq3) + dq4) * (dt / 6.0)
+    v = v + (dv1 + 2 * (dv2 + dv3) + dv4) * (dt / 6.0)
     return (q, v)
 
-# Интегрирует уравнение динамики на отрезе времени dt 
+
+# Интегрирует уравнение динамики на отрезе времени dt
 # с начальными условиями q, v для дерева обьектов с корнем obj,
 # считае обобщенные силы на интервале полстоянными и равными force.
 # Делит интервал на меньшие длины microstep, для которых делает 
 # шаги методом Рунге-Кутты.
 def integrate(dt, obj, q, v, force, microstep=0.1):
-    while dt>microstep:
+    while dt > microstep:
         q, v = runge(microstep, obj, q, v, force)
         dt = dt - microstep
     q, v = runge(dt, obj, q, v, force)
@@ -673,38 +705,43 @@ def integrate(dt, obj, q, v, force, microstep=0.1):
 #   q[2] - угол поворота Head относительно Body.
 
 # Выбираем далее физические константы, не имеющего никакого отношения к реальным роботам.
-gravity = 2.0 # Ускорение свободного падения.
+gravity = 2.0  # Ускорение свободного падения.
 
-slope = np.pi/100 # Угол наколна поверхности, по которой катиться колесо. 
+q_collection = []
+v_collection = []
+a_collection = []
 
-wheel_radius = 1.0 # Радиус колеса.
-wheel_mass = 0.3 # Масса колеса
-wheel_moi  = 0.5*wheel_mass*wheel_radius*wheel_radius # Момент инерции колеса (диск постоянной плотности)
+slope = 0  # Угол наколна поверхности, по которой катиться колесо.
 
-body_width = 0.5 # Высота части Body
-body_height = 5.0 # Ширина Body.
-body_offset = 2.0 # Расстояние от центра до места закрепления колеса Wheel.
-body_mass = 0.3 # Масса Body.
+wheel_radius = 1.0  # Радиус колеса.
+wheel_mass = 0.3  # Масса колеса
+wheel_moi = 0.5 * wheel_mass * wheel_radius * wheel_radius  # Момент инерции колеса (диск постоянной плотности)
+
+body_width = 0.5  # Высота части Body
+body_height = 5.0  # Ширина Body.
+body_offset = 2.0  # Расстояние от центра до места закрепления колеса Wheel.
+body_mass = 0.3  # Масса Body.
 # Момент инерции Body считается как момент инерции прямоугольника постоянной плотности
 # вокруг оси, смещенной относительно центра на body_offset.
-body_moi = (body_height**2+body_width**2)*body_mass/12.0 + body_mass*body_offset**2 
+body_moi = (body_height ** 2 + body_width ** 2) * body_mass / 12.0 + body_mass * body_offset ** 2
 
-head_width = 0.5 # Высота
-head_height = 2.0 # и ширина части Head.
-head_offset = 0.5 # Смещение точки закрепления Head к Body относительно центра масс Head.
-head_mass = 0.2 # Масса Head.
-head_moi = (head_height**2+head_width**2)*head_mass/12.0 + head_mass*head_offset**2 # момент инерции
+head_width = 0.5  # Высота
+head_height = 2.0  # и ширина части Head.
+head_offset = 0.5  # Смещение точки закрепления Head к Body относительно центра масс Head.
+head_mass = 0.2  # Масса Head.
+head_moi = (head_height ** 2 + head_width ** 2) * head_mass / 12.0 + head_mass * head_offset ** 2  # момент инерции
 
 # Начальное состояние
 # q0 = np.array([0.0, 0.0, 0.0], dtype=np.float32) # обобщенные координаты
 # v0 = np.array([0.0, 0.0, 0.0], dtype=np.float32) # обобщенные скорости
 
-q0 = np.array([0.0, 0.0], dtype=np.float32) # обобщенные координаты
-v0 = np.array([0.0, 0.0], dtype=np.float32) # обобщенные скорости
+q0 = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # обобщенные координаты
+v0 = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # обобщенные скорости
 # q0 = np.array([0.0, -0.03141593], dtype=np.float32) # обобщенные координаты
 # v0 = np.array([-1.6479, 1.6479], dtype=np.float32) # обобщенные скорости
 
 target_delta = 5.0
+
 
 # Перечисляем все части робота.
 
@@ -717,82 +754,140 @@ class Wheel(Compound):
     # поднимаем колесо над полом на его радиус,
     # поворачиваем сцену обратно, чтобы пол оказался под нужным углом.
     def propagator(self, q):
-        return AD(rotate(slope) @ translate(0, wheel_radius)) * AD.translate_x(q, 0) * AD.rotate(q, 0) * AD(rotate(-slope))
+        return AD(rotate(slope) @ translate(0, wheel_radius)) * AD.translate_x(q, 0) * AD.rotate(q, 0) * AD(
+            rotate(-slope))
+
     # Переопределяем значения по умолчанию.
     def __init__(self, ctx):
-        super().__init__( figure=Circle(ctx),
-                          color=(0.7,0.8,0.0,1.0),
-                          mass=wheel_mass,
-                          moi=wheel_moi ,
-                          modifier=stretch(wheel_radius,wheel_radius)
-        )
+        super().__init__(figure=Circle(ctx),
+                         color=(0.7, 0.8, 0.0, 1.0),
+                         mass=wheel_mass,
+                         moi=wheel_moi,
+                         modifier=stretch(wheel_radius, wheel_radius)
+                         )
+
 
 # Тело, стоящее на колесе
 class Body(Compound):
     def propagator(self, q):
-        return AD.rotate(q,1) * AD(translate(0.0, body_offset))
+        return AD.rotate(q, 1) * AD(translate(0.0, body_offset))
+
     def __init__(self, ctx):
-        super().__init__( figure=Rectangle(ctx)
-            , modifier=stretch(body_width/2.0, body_height/2.0)
-            , color=(0.1,0.4,0.7,0.5)
-            , mass=body_mass
-            , moi=body_moi
-        )
+        super().__init__(figure=Rectangle(ctx)
+                         , modifier=stretch(body_width / 2.0, body_height / 2.0)
+                         , color=(0.1, 0.4, 0.7, 0.5)
+                         , mass=body_mass
+                         , moi=body_moi
+                         )
+
 
 # Голова, прикрепленная к телу
 class Head(Compound):
     def propagator(self, q):
-        return AD(translate(0.0, body_height/2.0-head_offset)) * AD.rotate(q,2) * AD(translate(0.0, head_offset))
+        return AD(translate(0.0, body_height / 2.0 - head_offset)) * AD.rotate(q, 2) * AD(translate(0.0, head_offset))
+
     def __init__(self, ctx):
-        super().__init__( figure=Rectangle(ctx)
-            , modifier=stretch(head_width/2.0, head_height/2.0)
-            , color=(0.4,0.7,0.1,0.7)
-            , mass=head_mass
-            , moi=head_moi
-        )
+        super().__init__(figure=Rectangle(ctx)
+                         , modifier=stretch(head_width / 2.0, head_height / 2.0)
+                         , color=(0.4, 0.7, 0.1, 0.7)
+                         , mass=head_mass
+                         , moi=head_moi
+                         )
+
 
 ############################################################################
 ## Контроллер
 
+timestamp = None
 err0 = None
 ierr = 0.0
-def controller_pid(obj, q, v, target, dt): # -> force
-    global err0, ierr
-    err = q[0]+q[1]-target
-    ierr = ierr + err*dt
-    if err0 is None: 
+
+
+def controller_pid(obj, q, v, target, dt):  # -> force
+    global err0, ierr, timestamp
+    err = q[0] + q[1] - target
+    ierr = ierr + err * dt
+    if err0 is None:
         f = 0.0
+        timestamp = time.time()
     else:
-        derr = (err-err0)/dt
-        f = 3*err + 3*derr + 0.0*ierr
+        derr = (err - err0) / dt
+        f = 3 * err + 100 * derr + 100.0 * ierr
+        # print(err)
         # print("err {} derr {} ierr f {}".format(err, derr, f), end="\r")
     err0 = err
     return np.array([0, f], dtype=np.float32)
 
+
+last_error = 0
+ITerm = 0
+
+
+def controller_pid_2(obj, q, v, target, dt):
+    global last_error, ITerm, timestamp
+    if timestamp is None:
+        timestamp = time.time()
+    Kp = 3
+    Ki = 3
+    Kd = 0.0
+    error = q[0] + q[1] - target
+    delta_time = dt
+    delta_error = error - last_error
+
+    PTerm = Kp * error
+    ITerm += error * delta_time
+
+    DTerm = 0.0
+    if delta_time > 0:
+        DTerm = delta_error / delta_time
+
+    # Remember last time and last error for next calculation
+    last_error = error
+    print("pit_controller {}, {}, {}".format(PTerm, ITerm, DTerm))
+    output = PTerm + (Ki * ITerm) + (Kd * DTerm)
+
+    return np.array([0, output], dtype=np.float32)
+
+new_target_force = []
+
 def controller_const(obj, q, v, target, dt):
-    target_acc = np.minimum(1.4, 0.2 * np.abs(target-v[0])) * np.sign(target-v[0])
+    global new_target_force
+    target_acc = np.minimum(1.4, 0.2 * np.abs(target - v[0])) * np.sign(target - v[0])
     res = find_angle_by_acceleration(obj, target_acc)
     delta_q = res[0]
     force0 = res[1]
-    force = force0 + 100.0 * (q[0]+q[1]-delta_q) + 100.0 * (v[0]+v[1])
-    print("V {:0.5} {:0.5} A {:0.5} Q {:0.5} F {:0.5} {:0.5}     ".format(target, v[0], target_acc, delta_q, force0, force), end="\r")    
-    return np.array([0.0, force], dtype=np.float32)
+    force = force0 + 100.0 * (q[0] + q[1] - delta_q) + 100.0 * (v[0] + v[1])
+    new_target_force.append(res)
+    # force2 = force + 3.0 * (q[1] + q[2] - delta_q) + 3.0 * (v[1] + v[2])
+    print(force)
+    print("V {:0.5} {:0.5} A {:0.5} Q {:0.5} F {:0.5} {:0.5}     ".format(target, v[0], target_acc, delta_q, force0,
+                                                                          force), end="\r")
+    return np.array([0.0, force, 0.0], dtype=np.float32)
+
 
 def find_angle_by_acceleration(obj, target):
-    def fn(arg): # Return zero vector for stationary motion with given velocity target.
-        q = np.array([0.0, arg[0]]) # Body slope is to be computed.
-        v = np.array([0.1, -0.1]) # Can be arbitrary.
-        force = np.array([0, arg[1]]) # The force is the second unknown.
+    def fn(arg):  # Return zero vector for stationary motion with given velocity target.
+        global q_collection, v_collection, a_collection
+        q = np.array([0.0, arg[0], arg[1]])  # Body slope is to be computed.
+        v = np.array([0.1, -0.1, -0.1])  # Can be arbitrary.
+        force = np.array([0, arg[1], arg[2]])  # The force is the second unknown.
         v, a = rhs(obj, q, v, force)
-        return a-np.array([target, -target])
-    arg0 = np.array([0.0, 0.0]) # Initial approximation
-    sol = scipy.optimize.root(fn, arg0)
-    return sol.x if sol.success else None 
+        print("A {:0.5} {:0.5} {:0.5}".format(a[0], a[1], a[2]), end="\r")
+        q_collection.append(q)
+        v_collection.append(v)
+        a_collection.append(a)
+        return a - np.array([target, -target, -target])
 
-controllers = { 
+    arg0 = np.array([0.0, 0.0, 0.0])  # Initial approximation
+    sol = scipy.optimize.root(fn, arg0)
+    return sol.x if sol.success else None
+
+
+controllers = {
     "CONST": controller_const,
-    "PID": controller_pid, 
+    "PID": controller_pid,
 }
+
 
 # In[9]:
 
@@ -800,73 +895,77 @@ controllers = {
 # Класс для окна, откуда вызывается отрисовка сцены, обсчет динамики и взаимодействие с пользователем.
 class MainWindow(Example):
     def __init__(self):
-        self.ctx = mgl.create_context() # Создаем OpenGL контекст
+        global timestamp
+        self.ctx = mgl.create_context()  # Создаем OpenGL контекст
 
         # Здесь будут храниться текущие координаты и скорости.
-        self.q = np.array(q0) # Инициализируем начальными значениями.
-        self.v = np.array(v0) 
+        self.q = np.array(q0)  # Инициализируем начальными значениями.
+        self.v = np.array(v0)
 
         # Создаем объект для пола, по которому катится робот.
         # Динамику далее для него не обсчитываем, с колесом он не взаимодествует,
         # используется только для визуализации.
-        floor = Compound(modifier=rotate(slope)@stretch(1000,10)@translate(0,-1)
-                    , figure=Rectangle(self.ctx)
-                    , color=(0.6,0.5,0.3,1.0)
-                    )
+        floor = Compound(modifier=rotate(slope) @ stretch(1000, 10) @ translate(0, -1)
+                         , figure=Rectangle(self.ctx)
+                         , color=(0.6, 0.5, 0.3, 1.0)
+                         )
         # Отметка для начального положения робота.
         # Также используется только для визуализации.
-        origin = Compound(modifier=stretch(0.01,0.5)@translate(0,-1)
-                    , figure=Rectangle(self.ctx)
-                    , color=(0.3,0.0,0.0,1.0)
-                    )
+        origin = Compound(modifier=stretch(0.01, 0.5) @ translate(0, -1)
+                          , figure=Rectangle(self.ctx)
+                          , color=(0.3, 0.0, 0.0, 1.0)
+                          )
         # Собираем дерево обьектов для робота.
-        self.wheel = Wheel(self.ctx) # Корнем будет колесо.
-        self.wheel.adopt("body", Body(self.ctx)) # Добавляем к нему зависимых оьект Body.
-        # self.wheel["body"].adopt("head", Head(self.ctx)) # К Body прикрепляем Head.
+        self.wheel = Wheel(self.ctx)  # Корнем будет колесо.
+        self.wheel.adopt("body", Body(self.ctx))  # Добавляем к нему зависимых оьект Body.
+        self.wheel["body"].adopt("head", Head(self.ctx))  # К Body прикрепляем Head.
         # Теперь собираем сцену, т.е. все обьекты, которые есть на экране:
         # пол, зарубка в начале, корневой обьект для робота.
-        self.objects = [floor, origin, self.wheel]   
+        self.objects = [floor, origin, self.wheel]
         # На эту точку в мировых координатах смотрит камера.
-        self.pov = (0.0, 0.0)   
+        self.pov = (0.0, 0.0)
 
         self.info = ""
 
         self.controller = controllers[next(iter(controllers))]
-        self.target_speed = 0.0
+        self.target_speed = 1.0
+        timestamp = time.time()
 
     # Этот методы вызывается при отрисовке каждого кадра.
     def render(self):
-        self.update_camera() # Обновляем положение камеры, чтобы она всегда глядела на робота.
+        self.update_camera()  # Обновляем положение камеры, чтобы она всегда глядела на робота.
         # Вычисляем масштаб по ширине и высоте.
-        scale = (1.0, self.wnd.ratio) if self.wnd.ratio<1 else (1.0/self.wnd.ratio, 1.0)
+        scale = (1.0, self.wnd.ratio) if self.wnd.ratio < 1 else (1.0 / self.wnd.ratio, 1.0)
         # Настраиваем OpenGL контекст.
-        self.ctx.enable_only(mgl.BLEND) # Разрешаем отрисовку полупрозрачных обьектов.
-        self.ctx.viewport = self.wnd.viewport # Размер области отрисовки совпадает со всем окном.
-        self.ctx.clear(0.8, 0.8, 0.9) # Заливаем фон.
-        for obj in self.objects: # Отрисовываем все обьекты в сцене.
-            obj.render(self.q, scale=scale, transform=stretch(0.1,0.1)@translate(-self.pov[0],-self.pov[1])) # Slow, if obj has lot of parents
+        self.ctx.enable_only(mgl.BLEND)  # Разрешаем отрисовку полупрозрачных обьектов.
+        self.ctx.viewport = self.wnd.viewport  # Размер области отрисовки совпадает со всем окном.
+        self.ctx.clear(0.8, 0.8, 0.9)  # Заливаем фон.
+        for obj in self.objects:  # Отрисовываем все обьекты в сцене.
+            obj.render(self.q, scale=scale, transform=stretch(0.1, 0.1) @ translate(-self.pov[0], -self.pov[
+                1]))  # Slow, if obj has lot of parents
 
-        self.physics() # обновляем положения обьектов.
+        self.physics()  # обновляем положения обьектов.
 
-    def update_camera(self): # обновляем положение камеры.
-        U = self.wheel.propagator(self.q).value() # Матрица U для робота.
-        pos = (U[0,2], U[1,2]) # Центр масс для колеса = желаемое положение камеры.
-        a = 1.0-np.power(0.3, self.wnd.delta) # Скорость стремления к желаемому положению.
-        self.pov=(self.pov[0]*(1-a)+a*pos[0],self.pov[1]*(1-a)+a*pos[1]) # Новое положение камеры.
+    def update_camera(self):  # обновляем положение камеры.
+        U = self.wheel.propagator(self.q).value()  # Матрица U для робота.
+        pos = (U[0, 2], U[1, 2])  # Центр масс для колеса = желаемое положение камеры.
+        # a = 1.0-np.power(0.3, self.wnd.delta) # Скорость стремления к желаемому положению.
+        self.pov = pos
 
     # Здесь обсчитывается физика и взаимодействие с пользователем.
     def physics(self):
+        global timestamp
         # if np.any(self.wnd.keys): print(np.nonzero(self.wnd.keys)) # Показывает нажатые клавиши
-        
+
         # Меняем контроллер при необходимости:
-        for n,k in enumerate(controllers.keys()):
+        for n, k in enumerate(controllers.keys()):
             c = controllers[k]
-            if self.wnd.keys[49+n] and self.controller!=c:
+            if self.wnd.keys[49 + n] and self.controller != c:
                 print("Controller: {}".format(k))
                 self.controller = c
 
         # При нажатии проблема сбрасываем состояние робота в начальное.
-        if self.wnd.keys[32]: # SPACE
+        if self.wnd.keys[32]:  # SPACE
             self.q = np.zeros_like(self.q)
             self.v = np.zeros_like(self.v)
             self.target_speed = 0.0
@@ -875,35 +974,48 @@ class MainWindow(Example):
         if self.wnd.keys[115] or self.wnd.keys[84]:
             self.target_speed = 0.0
         if self.wnd.keys[97] or self.wnd.keys[81]:
-            self.target_speed -= target_delta*self.wnd.delta
-        if self.wnd.keys[100] or self.wnd.keys[83]:    
-            self.target_speed += target_delta*self.wnd.delta
+            self.target_speed -= target_delta * self.wnd.delta
+        if self.wnd.keys[100] or self.wnd.keys[83]:
+            self.target_speed += target_delta * self.wnd.delta
 
         # Считаем момент силы, вращающей голову.
-        # torque2 = 0.0
-        # if self.wnd.keys[119] or self.wnd.keys[82]:
-        #     torque2 += 1.0
-        # if self.wnd.keys[115] or self.wnd.keys[84]:    
-        #     torque2 -= 1.0 
-        
-        # Делаем шаг динамики.
-        dt = self.wnd.delta # Приращение времени симуляции за один шаг.
-        force = self.controller(self.wheel, self.q, self.v, self.target_speed, dt) # Вектор обобщенных сил.
-        # Интегрируем уравнения динамики.
-        self.q, self.v = integrate(dt, self.wheel, self.q, self.v, force) 
+        torque2 = 0.0
+        if self.wnd.keys[119] or self.wnd.keys[82]:
+            torque2 += 1.0
+        if self.wnd.keys[115] or self.wnd.keys[84]:
+            torque2 -= 1.0
 
+        # Делаем шаг динамики.
+        dt = self.wnd.delta  # Приращение времени симуляции за один шаг.
+        force = self.controller(self.wheel, self.q, self.v, self.target_speed, dt)  # Вектор обобщенных сил.
+
+        # Интегрируем уравнения динамики.
+        self.q, self.v = integrate(dt, self.wheel, self.q, self.v, force)
+        print(self.target_speed, self.v, timestamp is None, abs(self.target_speed) - abs(self.v[0]))
+        if abs(self.target_speed - self.v[0]) < 0.0001:
+            print(time.time() - timestamp)
+            exit()
         # Пересчитываем энергию и выводим частоту кадров в консоль.
         e = energy(self.wheel, self.q, self.v)
-        self.info = "E: {:.4}".format(e)  
+        self.info = "E: {:.4}".format(e)
 
-# Эта функция запускает все приложение.
+        # Эта функция запускает все приложение.
+
+
 def run():
+    global new_target_force
     print("Balancer robot.\n  LEFT or A - tilt to the left.\n  RIGHT or D - tilt to the right.\n  SPACE - reset.\n")
     run_example(MainWindow)
+    fig, axs = plt.subplots(3, 1)
+    q_collect = np.asarray(new_target_force)
+    axs[0].plot(q_collect[:, 0])
+    axs[1].plot(q_collect[:, 1])
+    axs[2].plot(q_collect[:, 2])
 
+    fig.tight_layout()
+    plt.show()
 
 # In[10]:
 
 
 run()
-
