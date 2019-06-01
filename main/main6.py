@@ -1002,9 +1002,12 @@ class MainWindow(Example):
         # Эта функция запускает все приложение.
 
 
+testMain = None
+
 def run():
     global new_target_force
     print("Balancer robot.\n  LEFT or A - tilt to the left.\n  RIGHT or D - tilt to the right.\n  SPACE - reset.\n")
+    testMain = MainWindow
     run_example(MainWindow)
     fig, axs = plt.subplots(3, 1)
     q_collect = np.asarray(new_target_force)

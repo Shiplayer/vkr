@@ -1,6 +1,15 @@
 import math
 import random as rand
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+
+
+class Tree(object):
+    def __init__(self):
+        self.left = None
+        self.right = None
+        self.data = None
 
 
 class Line:
@@ -66,32 +75,39 @@ spheres = list()
 
 
 def main():
-    countSphere = 50
-    ax = plt.gca()
+    training_epochs = 500
+    n_neurons_in_h1 = 60
+    n_neurons_in_h2 = 60
+    learning_rate = 0.01
 
-    # buf_sphere = Sphere(10, 10, 10)
-    # spheres.append(buf_sphere)
-    # buf_line = Line(10, 0, 30, 20)
+    # countSphere = 50
+    # ax = plt.gca()
     #
-    # ax.add_line(buf_line.convert_to_2d())
+    # # buf_sphere = Sphere(10, 10, 10)
+    # # spheres.append(buf_sphere)
+    # # buf_line = Line(10, 0, 30, 20)
+    # #
+    # # ax.add_line(buf_line.convert_to_2d())
+    #
+    # for i in range(countSphere):
+    #     spheres.append(add_new_sphere())
+    #
+    # for sphere in spheres:
+    #     print(sphere.x, sphere.y, sphere.r)
+    #     ax.add_patch(plt.Circle((sphere.x, sphere.y), sphere.r))
+    #
+    # line = create_line()
+    # ax.add_line(line.convert_to_2d())
+    # ax.add_line(create_end_line(line).convert_to_2d())
+    # # ax.add_line(plt.Line2D([0, 10], [0, 10]))
+    #
+    # plt.axis("scaled")
+    # plt.show()
+    #
+    # for sphere in spheres:
+    #     print("intersection: ", intersection(sphere, line))
 
-    for i in range(countSphere):
-        spheres.append(add_new_sphere())
 
-    for sphere in spheres:
-        print(sphere.x, sphere.y, sphere.r)
-        ax.add_patch(plt.Circle((sphere.x, sphere.y), sphere.r))
-
-    line = create_line()
-    ax.add_line(line.convert_to_2d())
-    ax.add_line(create_end_line(line).convert_to_2d())
-    # ax.add_line(plt.Line2D([0, 10], [0, 10]))
-
-    plt.axis("scaled")
-    plt.show()
-
-    for sphere in spheres:
-        print("intersection: ", intersection(sphere, line))
 
 
 def intersection(sphere, line):
