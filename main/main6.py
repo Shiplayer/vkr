@@ -740,8 +740,11 @@ v0 = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # обобщенные ско�
 # q0 = np.array([0.0, -0.03141593], dtype=np.float32) # обобщенные координаты
 # v0 = np.array([-1.6479, 1.6479], dtype=np.float32) # обобщенные скорости
 
-target_delta = 5.0
+flywheel_radius = 1.0
+flywheel_mass = 0.3
+flywheel_moi = 0.5 * wheel_mass * wheel_radius * wheel_radius
 
+target_delta = 5.0
 
 # Перечисляем все части робота.
 
@@ -784,14 +787,14 @@ class Body(Compound):
 # Голова, прикрепленная к телу
 class Head(Compound):
     def propagator(self, q):
-        return AD(translate(0.0, body_height / 2.0 - head_offset)) * AD.rotate(q, 2) * AD(translate(0.0, head_offset))
+        return AD(translate(0.0, body_height / 2.0 - head_offset)) * AD.rotate(q, 2)
 
     def __init__(self, ctx):
-        super().__init__(figure=Rectangle(ctx)
-                         , modifier=stretch(head_width / 2.0, head_height / 2.0)
-                         , color=(0.4, 0.7, 0.1, 0.7)
-                         , mass=head_mass
-                         , moi=head_moi
+        super().__init__(figure=Circle(ctx),
+                         color=(0.7, 0.8, 0.0, 0.5),
+                         mass=flywheel_mass,
+                         moi=flywheel_moi,
+                         modifier=stretch(flywheel_radius, flywheel_radius)
                          )
 
 
@@ -802,21 +805,57 @@ timestamp = None
 err0 = None
 ierr = 0.0
 
+error_list = []
+
 
 def controller_pid(obj, q, v, target, dt):  # -> force
-    global err0, ierr, timestamp
-    err = q[0] + q[1] - target
-    ierr = ierr + err * dt
+    global err0, ierr, timestamp, error_list, q_last, v_last
+    new_target = target # np.minimum(1.4, 0.2 * np.abs(target - v[0])) * np.sign(target - v[0])
+    #print("q[0] {} q[1] {} q[2] {} v {} target_v {}".format(q[0], q[1], q[2], v[0], new_target))
+    err = new_target - v[0]
+    # print("q[0] {} q[1] {} q[2] {} v {} target_v {} \t err {} target-v {}".format(q[0], q[1], q[2], v[0], new_target, err, np.array(0.2 * np.abs(target - v[0])) * np.sign(target - v[0])))
+    #err = q[0] + q[1] - target
+    v_last = v[0]
+    Kp = 10
+    Ki = 0.01
+    Kd = 0.01
+    ierr += err * dt
     if err0 is None:
         f = 0.0
         timestamp = time.time()
     else:
         derr = (err - err0) / dt
-        f = 3 * err + 100 * derr + 100.0 * ierr
+        f = Kp * err + Ki * derr + Kd * ierr
         # print(err)
         # print("err {} derr {} ierr f {}".format(err, derr, f), end="\r")
     err0 = err
-    return np.array([0, f], dtype=np.float32)
+    #error_list.append(err)
+    return np.array([0, f, -f], dtype=np.float32)
+
+flywheel_err0 = 0.0
+flywheel_ierr = 0.0
+
+def controller_pid_flywheel(q, target, dt):
+    global flywheel_err0, flywheel_ierr
+    print(
+        "q {}, target {}, err {}".format(q, target, target - q[0] - q[1]))
+    Kp = 30
+    Ki = 15
+    Kd = 0.001
+    err = target - q[0] - q[1]
+    flywheel_ierr = flywheel_ierr + err * dt
+    if flywheel_err0 is None:
+        f = 0.0
+    else:
+        derr = (err - flywheel_err0) / dt
+        f = Kp * err + Ki * derr + Kd * ierr
+        print("err0 {} err {} derr {} ierr {}, force {}".format(err0, Kp * err, Ki * derr, Kd * flywheel_ierr, f))
+        # err -0.09203688424657575 derr -0.02166140395253632 ierr 0.16216922216838506, force -0.0819504248811715
+        # err 0.10218934451413864 derr 0.027927363449366478 ierr 0.1420442706060472, force 0.16044149481423878
+        # print("err {} derr {} ierr f {}".format(err, derr, f), end="\r")
+    flywheel_err0 = err
+    error_list.append(err)
+    return f
 
 
 last_error = 0
@@ -846,12 +885,18 @@ def controller_pid_2(obj, q, v, target, dt):
     print("pit_controller {}, {}, {}".format(PTerm, ITerm, DTerm))
     output = PTerm + (Ki * ITerm) + (Kd * DTerm)
 
-    return np.array([0, output], dtype=np.float32)
+    return np.array([0, output, 0], dtype=np.float32)
 
 new_target_force = []
 
+q_last = 0
+v_last = 0
+
 def controller_const(obj, q, v, target, dt):
-    global new_target_force
+    global new_target_force, q_last, v_last
+    print("q[0] {}\t q[1] {}\t q[2] {}\t dt {}\t v {}\t v_last {} \t error {}\t target {}".format(q[0], q[1], q[2], dt, v_last + dt*(q[0] - q_last), v_last + dt*(q[0] - q_last), v_last + dt*(q[0] - q_last) - target, target))
+    q_last = q[0]
+    v_last = v_last + dt*(q[0] - q_last)
     target_acc = np.minimum(1.4, 0.2 * np.abs(target - v[0])) * np.sign(target - v[0])
     res = find_angle_by_acceleration(obj, target_acc)
     delta_q = res[0]
@@ -859,11 +904,13 @@ def controller_const(obj, q, v, target, dt):
     force = force0 + 100.0 * (q[0] + q[1] - delta_q) + 100.0 * (v[0] + v[1])
     new_target_force.append(res)
     # force2 = force + 3.0 * (q[1] + q[2] - delta_q) + 3.0 * (v[1] + v[2])
-    print(force)
-    print("V {:0.5} {:0.5} A {:0.5} Q {:0.5} F {:0.5} {:0.5}     ".format(target, v[0], target_acc, delta_q, force0,
-                                                                          force), end="\r")
+    print("force {}".format(force))
+    #print("V {:0.5} {:0.5} A {:0.5} Q {:0.5} F {:0.5} {:0.5}     ".format(target, v[0], target_acc, delta_q, force0,
+    #                                                                      force), end="\r")
     return np.array([0.0, force, 0.0], dtype=np.float32)
 
+
+#  def controller_pid_acceleration()
 
 def find_angle_by_acceleration(obj, target):
     def fn(arg):  # Return zero vector for stationary motion with given velocity target.
@@ -884,8 +931,9 @@ def find_angle_by_acceleration(obj, target):
 
 
 controllers = {
-    "CONST": controller_const,
-    "PID": controller_pid,
+    #"CONST": controller_const,
+    "PID_SPEED": controller_pid,
+    "PID_ACCELERATE": controller_pid_flywheel
 }
 
 
@@ -928,7 +976,7 @@ class MainWindow(Example):
         self.info = ""
 
         self.controller = controllers[next(iter(controllers))]
-        self.target_speed = 1.0
+        self.target_speed = 0.0
         timestamp = time.time()
 
     # Этот методы вызывается при отрисовке каждого кадра.
@@ -989,15 +1037,23 @@ class MainWindow(Example):
         dt = self.wnd.delta  # Приращение времени симуляции за один шаг.
         force = self.controller(self.wheel, self.q, self.v, self.target_speed, dt)  # Вектор обобщенных сил.
 
+        support_force = controller_pid_flywheel(self.q, 0.0, dt)
+
+        force[2] += support_force
+
+        #print("force {}".format(force))
+
+#        print("wheel angle {}".format())
+
         # Интегрируем уравнения динамики.
         self.q, self.v = integrate(dt, self.wheel, self.q, self.v, force)
-        print(self.target_speed, self.v, timestamp is None, abs(self.target_speed) - abs(self.v[0]))
-        if abs(self.target_speed - self.v[0]) < 0.0001:
-            print(time.time() - timestamp)
-            exit()
+        #print(self.target_speed, self.v, timestamp is None, abs(self.target_speed) - abs(self.v[0]))
+        # if abs(self.target_speed - self.v[0]) < 1e-7:
+        #     print(time.time() - timestamp)
+        #     exit()
         # Пересчитываем энергию и выводим частоту кадров в консоль.
         e = energy(self.wheel, self.q, self.v)
-        self.info = "E: {:.4}".format(e)
+        self.info = " target {} speed {}".format(self.target_speed, self.v[0]) + "E: {:.4}".format(e)
 
         # Эта функция запускает все приложение.
 
@@ -1009,13 +1065,14 @@ def run():
     print("Balancer robot.\n  LEFT or A - tilt to the left.\n  RIGHT or D - tilt to the right.\n  SPACE - reset.\n")
     testMain = MainWindow
     run_example(MainWindow)
-    fig, axs = plt.subplots(3, 1)
-    q_collect = np.asarray(new_target_force)
-    axs[0].plot(q_collect[:, 0])
-    axs[1].plot(q_collect[:, 1])
-    axs[2].plot(q_collect[:, 2])
+#    fig, axs = plt.subplots(3, 1)
+#    q_collect = np.asarray(new_target_force)
+#    axs[0].plot(q_collect[:, 0])
+#    axs[1].plot(q_collect[:, 1])
+#    axs[2].plot(q_collect[:, 2])
 
-    fig.tight_layout()
+#    fig.tight_layout()
+    plt.plot(error_list)
     plt.show()
 
 # In[10]:
